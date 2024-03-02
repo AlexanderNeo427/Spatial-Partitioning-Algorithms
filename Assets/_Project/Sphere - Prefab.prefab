@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 8429722894583682837}
   - component: {fileID: 6300671123009914539}
   m_Layer: 0
-  m_Name: Sphere Prefab
+  m_Name: Sphere - Prefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -51,7 +51,7 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1369122473600925105}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0

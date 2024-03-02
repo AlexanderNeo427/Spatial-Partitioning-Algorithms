@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
-using UnityEngine.UIElements;
 
 namespace Neo {
 
@@ -15,6 +13,8 @@ namespace Neo {
         [SerializeField] GameObject _spherePrefab;
 
         Boundary m_worldBoundary;
+        List<GameObject> m_allSpheres;
+        Octree m_rootNode;
 
         void Awake() {
             Assert.IsNotNull(_spherePrefab);
@@ -23,11 +23,31 @@ namespace Neo {
 
         void Start() {
             m_worldBoundary = _InitializeBoundingBoxWalls(0.2f);
-            _InitializeSpheres((int)_sphereCount, Random.Range(0.2f, 0.8f), m_worldBoundary);
+            m_allSpheres = _InitializeSpheres((int)_sphereCount, Random.Range(0.2f, 0.8f), m_worldBoundary);
+        }
+
+        void Update() {
+            m_rootNode = new Octree(m_worldBoundary, m_allSpheres, 0);
         }
 
         void OnDrawGizmos() {
+            if (!Application.isPlaying) { return; }
             _DrawBoundary(m_worldBoundary);
+
+            int debugItrCount = 0;
+            List<Boundary> leafNodeBoundaries = new();
+            Octree.GetLeafNodeBoundaries(m_rootNode, ref leafNodeBoundaries, ref debugItrCount);
+
+            Debug.Log(debugItrCount);
+
+            int leItr = 0;
+            leafNodeBoundaries.ForEach(boundary => {
+                Debug.Log(leItr++);
+                Debug.Log("Min: " + boundary.min);
+                Debug.Log("Max: " + boundary.max);
+                Debug.Log("");
+                _DrawBoundary(boundary);
+            });
         }
 
         private Boundary _InitializeBoundingBoxWalls(float depth) {
@@ -89,6 +109,8 @@ namespace Neo {
                 sphere.transform.rotation = Quaternion.Euler(Random.Range(0f, 360f), Random.Range(0, 360f), 0f);
                 Rigidbody rb = sphere.GetComponent<Rigidbody>();
                 rb.AddForce(sphere.transform.forward * Random.Range(50f, 500f));
+
+                allSpheres.Add(sphere);
             }
             return allSpheres;
         }
