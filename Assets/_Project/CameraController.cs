@@ -2,45 +2,65 @@ using System;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+/**
+ * So how you are going to want to use thi is:
+ * - Have an empty gameObject (the _pivot reference), which is what the camera will look at
+ * - Let that pivot have a child gameObject (this will be the follow target)
+ * - The below code will rotate the pivot, and thus the 'follow target' (the child of the pivot) will rotate around pivot
+ * - You can then lerp the camera towards that 'follow target'
+ * - Place this script on the camera
+ */
 namespace Neo {
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Camera))]
     public sealed class CameraController : MonoBehaviour {
         [Header("---- Settings ----")]
-        [SerializeField][Range(0.1f, 40f)] float _rotationSpeed = 8f;
-        [SerializeField][Range(0.1f, 15f)] float _scrollSpeed = 8f;
+        [SerializeField][Range(0.1f, 2f)] float _idleRotationSpeed = 0.8f;
+        [SerializeField][Range(10f, 50f)] float _rotationSpeedMultiplier = 18f;
+        [SerializeField][Range(10f, 50f)] float _scrollSpeed = 20f;
 
-        GameObject m_anchor;
-        Vector2 m_anchorRotation;
+        [Header("--- Dependenceies ---")]
+        [SerializeField] GameObject _pivot;
+        [SerializeField] GameObject _followTarget;
+
+        Vector3 m_pivotRotation;
         Camera m_camera;
 
         void Awake() {
+            Assert.IsNotNull(_pivot);
+            Assert.IsNotNull(_followTarget);
+
             m_camera = GetComponent<Camera>();
             m_camera.transform.rotation = Quaternion.identity;
-
-            Assert.IsNotNull(gameObject.transform.parent);
-            m_anchor = gameObject.transform.parent.gameObject;
         }
 
         void Update() {
-            Vector3 dirCamToAnchor = (m_anchor.transform.position - m_camera.transform.position).normalized;
-            Vector3 newCamPosition = m_camera.transform.position + dirCamToAnchor * Input.GetAxis("Mouse ScrollWheel") * _scrollSpeed;
+            Vector3 dirTargetToPivot = (_pivot.transform.position - _followTarget.transform.position).normalized;
+            _followTarget.transform.position += dirTargetToPivot * Input.GetAxis("Mouse ScrollWheel") * _scrollSpeed;
             const float MIN_DISTANCE = 3f;
-            float distanceFromAnchor = Vector3.Distance(newCamPosition, m_anchor.transform.position);
-            if (distanceFromAnchor < MIN_DISTANCE) {
-                float offsetAmount = MIN_DISTANCE - distanceFromAnchor;
-                newCamPosition -= dirCamToAnchor * offsetAmount;
+            float distanceFromPivot = Vector3.Distance(_followTarget.transform.position, _pivot.transform.position);
+            if (distanceFromPivot < MIN_DISTANCE) {
+                _followTarget.transform.position -= dirTargetToPivot * (MIN_DISTANCE - distanceFromPivot);
             }
-            m_camera.transform.position = newCamPosition;
+            m_camera.transform.position = Vector3.Lerp(
+                m_camera.transform.position,
+                _followTarget.transform.position, 0.1f
+            );
 
             if (Input.GetMouseButton(0)) {
-                m_anchorRotation.y += Input.GetAxis("Mouse X") * _rotationSpeed;
-                m_anchorRotation.x -= Input.GetAxis("Mouse Y") * _rotationSpeed; 
-                m_anchorRotation.x = Mathf.Clamp(m_anchorRotation.x, -85f, 85f);
-                m_anchor.transform.rotation = Quaternion.Euler(m_anchorRotation.x, m_anchorRotation.y, 0f);
+                m_pivotRotation.y += Input.GetAxis("Mouse X") * _rotationSpeedMultiplier;
+                m_pivotRotation.x -= Input.GetAxis("Mouse Y") * _rotationSpeedMultiplier;
             }
+            else {
+                m_pivotRotation.y += _idleRotationSpeed * _rotationSpeedMultiplier * Time.deltaTime;
+            }
+            m_pivotRotation.x = Mathf.Clamp(m_pivotRotation.x, -85f, 85f);
+            _pivot.transform.rotation = Quaternion.Lerp(
+                _pivot.transform.rotation,
+                Quaternion.Euler(m_pivotRotation.x, m_pivotRotation.y, 0f), 0.1f
+            );
         }
 
-        void LateUpdate() => m_camera.transform.LookAt(m_anchor.transform, new Vector3(0, 1, 0));
+        void LateUpdate() => m_camera.transform.LookAt(_pivot.transform, new Vector3(0, 1, 0));
     }
 }
