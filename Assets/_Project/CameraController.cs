@@ -24,7 +24,7 @@ namespace Neo {
         [SerializeField] GameObject _followTarget;
 
         Vector3 m_pivotRotation;
-        Camera m_camera;
+        Camera  m_camera;
 
         void Awake() {
             Assert.IsNotNull(_pivot);
